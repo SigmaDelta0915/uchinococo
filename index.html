@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ウチのココ | 写真とAIで始める、大人の静かなお片付け</title>
+    <!-- Tailwind CSS (MIT License) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons for high quality open source icons (ISC/MIT License) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f7f6f3; /* 和モダン・グレージュ */
+            color: #3c3a36; /* 優しい墨色 */
+        }
+        /* スムーズなアニメーション */
+        .transition-all-300 {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f0ec;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d1cfc7;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b5b3ab;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-stone-200 selection:text-stone-800">
+
+    <!-- ナビゲーションバー -->
+    <header class="sticky top-0 z-40 bg-[#f7f6f3]/95 backdrop-blur-md border-b border-stone-200/80 px-4 py-3">
+        <div class="max-w-5xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <!-- 自作フクロウSVGアイコン (著作権完全フリー) -->
+                <div class="w-10 h-10 rounded-xl bg-stone-800 flex items-center justify-center text-white shadow-sm">
+                    <svg viewBox="0 0 24 24" class="w-6 h-6 fill-none stroke-current stroke-[2]">
+                        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+                        <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12z"/>
+                        <circle cx="9" cy="11" r="1.5" class="fill-current"/>
+                        <circle cx="15" cy="11" r="1.5" class="fill-current"/>
+                        <path d="M12 12l-1 2h2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-wider text-stone-800 flex items-center">
+                        ウチのココ
+                        <span class="ml-2 text-[10px] bg-stone-200 text-stone-600 px-1.5 py-0.5 rounded font-normal">Web版</span>
+                    </h1>
+                    <p class="text-[10px] text-stone-500 font-light">大人のためのAIお片付け台帳</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <!-- 設定ボタン（APIキー入力用） -->
+                <button onclick="toggleSettingsModal(true)" class="p-2 rounded-lg text-stone-600 hover:bg-stone-200/50 transition-all-300" title="API設定">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                </button>
+                <span class="h-5 w-[1px] bg-stone-300 mx-1"></span>
+                <span class="text-xs text-stone-500 hidden sm:inline-block">あなたのデータは端末内にのみ安全に保存されます</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-grow max-w-5xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- 左サイド：AI登録・カメラ・チャットエリア (5カラム) -->
+        <section class="lg:col-span-5 flex flex-col space-y-6">
+            
+            <!-- APIキー警告表示（未設定時のみ表示） -->
+            <div id="apiKeyBanner" class="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-xs flex items-start space-x-3 shadow-sm">
+                <i data-lucide="alert-circle" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5"></i>
+                <div>
+                    <p class="font-semibold mb-1">【重要】AI画像判定を使用するには</p>
+                    <p class="font-light leading-relaxed mb-2">
+                        写真を撮って自動で品名や場所を判定させるには、Gemini APIキーの登録が必要です。キーは外部に一切送信されず、あなたのブラウザに安全にのみ記憶されます。
+                    </p>
+                    <button onclick="toggleSettingsModal(true)" class="bg-amber-800 hover:bg-amber-900 text-white font-medium px-3 py-1 rounded-md transition-all-300">
+                        APIキーを設定する
+                    </button>
+                </div>
+            </div>
+
+            <!-- 音声・テキストによる秒速チャット登録 -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-stone-200/60">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold text-stone-700 flex items-center space-x-2">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-stone-600"></i>
+                        <span>ココに話しかけて登録する</span>
+                    </h2>
+                    <span class="text-[10px] text-stone-400 font-light">入力不要の魔法</span>
+                </div>
+                
+                <p class="text-xs text-stone-500 mb-3 leading-relaxed">
+                    「廊下の物置の上段に、防災リュックを2個片付けたよ」のように自然に話しかけてみてください。AIが自動で整理して保存します。
+                </p>
+
+                <div class="relative">
+                    <textarea id="chatInput" rows="2" class="w-full text-sm bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 pr-10 focus:ring-1 focus:ring-stone-400 focus:outline-none transition-all-300 font-light" placeholder="例：キッチンの戸棚の下に新しいタッパーを3個入れたよ"></textarea>
+                    
+                    <!-- 音声入力ボタン (Web Speech API) -->
+                    <button id="micBtn" onclick="toggleSpeechRecognition()" class="absolute right-3 bottom-3 text-stone-400 hover:text-stone-700 p-1 rounded-full hover:bg-stone-200/50 transition-all-300" title="音声で喋る">
+                        <i data-lucide="mic" id="micIcon" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="mt-3 flex items-center justify-between">
+                    <span id="speechStatus" class="text-[11px] text-stone-400 font-light">準備完了</span>
+                    <button onclick="processTextRegister()" class="bg-stone-800 hover:bg-stone-900 text-white text-xs px-4 py-2 rounded-lg font-medium transition-all-300 shadow-sm flex items-center space-x-1.5">
+                        <span>ココちゃんに任せる</span>
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- カメラ撮影＆AI自動判定エリア -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-stone-200/60 flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-semibold text-stone-700 flex items-center space-x-2">
+                        <i data-lucide="camera" class="w-4 h-4 text-stone-600"></i>
+                        <span>写真を撮ってAIで自動登録</span>
+                    </h2>
+                </div>
+
+                <!-- プレビュー/カメラ映像コンテナ -->
+                <div class="w-full aspect-[4/3] bg-stone-50 border border-dashed border-stone-300 rounded-xl overflow-hidden relative flex flex-col items-center justify-center text-stone-400 group">
+                    <video id="video" class="w-full h-full object-cover hidden" autoplay playsinline></video>
+                    <canvas id="canvas" class="hidden"></canvas>
+                    <img id="photoPreview" class="w-full h-full object-cover hidden" src="" alt="プレビュー">
+
+                    <!-- デフォルトプレースホルダー -->
+                    <div id="camPlaceholder" class="text-center p-4">
+                        <i data-lucide="image" class="w-10 h-10 mx-auto mb-2 opacity-60"></i>
+                        <p class="text-xs font-light text-stone-500">写真を撮影するかファイルをドロップ</p>
+                        <p class="text-[10px] text-stone-400 font-light mt-1">カメラがなくても画像アップロードで判定可能です</p>
+                    </div>
+
+                    <!-- AI処理中インジケータ -->
+                    <div id="aiLoading" class="absolute inset-0 bg-stone-900/85 backdrop-blur-sm flex-col items-center justify-center hidden">
+                        <div class="w-10 h-10 border-4 border-stone-500 border-t-white rounded-full animate-spin mb-3"></div>
+                        <p class="text-xs text-white font-medium">フクロウのココが写真を解析中...</p>
+                        <p class="text-[10px] text-stone-300 font-light mt-1">モノの名前、収納場所、絵文字を考えています</p>
+                    </div>
+                </div>
+
+                <!-- カメラコントロールボタン -->
+                <div class="mt-4 grid grid-cols-2 gap-2">
+                    <!-- カメラ起動/撮影ボタン -->
+                    <button id="cameraToggleBtn" onclick="toggleCamera()" class="border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs py-2 px-3 rounded-lg flex items-center justify-center space-x-2 transition-all-300 font-medium">
+                        <i data-lucide="camera-off" id="camIcon" class="w-4 h-4 text-stone-500"></i>
+                        <span id="camText">カメラを起動</span>
+                    </button>
+
+                    <!-- ファイル選択ボタン -->
+                    <label class="border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs py-2 px-3 rounded-lg flex items-center justify-center space-x-2 cursor-pointer transition-all-300 font-medium">
+                        <i data-lucide="upload" class="w-4 h-4 text-stone-500"></i>
+                        <span>ファイルを選択</span>
+                        <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+                    </label>
+                </div>
+
+                <!-- 撮影アクション（起動時のみ出現） -->
+                <button id="snapBtn" onclick="takeSnapshot()" class="mt-2 w-full bg-stone-800 hover:bg-stone-900 text-white text-xs py-2 px-4 rounded-lg font-medium transition-all-300 hidden items-center justify-center space-x-1.5">
+                    <i data-lucide="aperture" class="w-4 h-4"></i>
+                    <span>パシャリと撮影してAIに判定してもらう</span>
+                </button>
+            </div>
+
+            <!-- ココの静かなお役立ちヒント -->
+            <div class="bg-stone-100/60 p-4 rounded-2xl border border-stone-200/40">
+                <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 rounded-full bg-stone-700 text-white flex items-center justify-center text-sm shrink-0">
+                        🦉
+                    </div>
+                    <div class="text-xs leading-relaxed text-stone-600 font-light">
+                        <p class="font-medium text-stone-800 mb-1">ココのアドバイス</p>
+                        <p id="systemTip">「よく使うものは腰より上、目線より下の位置に。たまにしか使わないものは、一番上か一番下に収めると毎日の出し入れがとても楽になりますよ。」</p>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- 右サイド：台帳リスト・検索エリア (7カラム) -->
+        <section class="lg:col-span-7 flex flex-col space-y-6">
+            
+            <!-- 検索・フィルターバー -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-stone-200/60 space-y-3">
+                <div class="relative">
+                    <input type="text" id="searchQuery" oninput="renderItems()" class="w-full text-sm bg-stone-50 border border-stone-200 rounded-xl pl-9 pr-4 py-2 focus:ring-1 focus:ring-stone-400 focus:outline-none transition-all-300 font-light" placeholder="アイテム名、場所、タグで検索...">
+                    <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-stone-400"></i>
+                </div>
+
+                <!-- カテゴリータグフィルター -->
+                <div class="flex flex-wrap gap-1.5 pt-1" id="categoryFilters">
+                    <!-- JSにて動的に作成 -->
+                </div>
+            </div>
+
+            <!-- 常備薬・防災食などの「有効期限アラート」エリア -->
+            <div id="expirationAlertSection" class="bg-red-50/50 border border-red-200/60 p-4 rounded-2xl hidden transition-all-300">
+                <div class="flex items-center space-x-2 text-red-800 text-xs font-semibold mb-2">
+                    <i data-lucide="clock" class="w-4 h-4 text-red-600"></i>
+                    <span>そろそろ期限・メンテナンスが必要なもの</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="alertItemsGrid">
+                    <!-- 警告期限切れアイテムをJSで動的に追加 -->
+                </div>
+            </div>
+
+            <!-- アイテム台帳ヘッダー -->
+            <div class="flex items-center justify-between">
+                <h2 class="text-sm font-semibold text-stone-700 flex items-center space-x-2">
+                    <i data-lucide="archive" class="w-4 h-4 text-stone-600"></i>
+                    <span>お家の持ち物台帳</span>
+                    <span id="itemCount" class="text-xs bg-stone-200 text-stone-700 px-2 py-0.5 rounded-full font-light ml-2">0点</span>
+                </h2>
+                
+                <!-- 手動登録フォームのトグル -->
+                <button onclick="toggleFormModal(true)" class="bg-stone-800 hover:bg-stone-900 text-white text-xs px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition-all-300 shadow-sm font-medium">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>手動で登録</span>
+                </button>
+            </div>
+
+            <!-- 台帳リスト本体 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="itemsList">
+                <!-- アイテムが登録されるとここに表示されます -->
+            </div>
+
+            <!-- アイテムがない場合の初期プレースホルダー -->
+            <div id="noItemsPlaceholder" class="bg-white p-12 rounded-2xl border border-dashed border-stone-300 text-center text-stone-400">
+                <i data-lucide="box" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                <h3 class="text-sm font-medium text-stone-600">まだ登録されているものはありません</h3>
+                <p class="text-xs text-stone-400 font-light mt-1 max-w-sm mx-auto leading-relaxed">
+                    上のテキストエリアにお持ちのアイテムのことを打ち込むか、カメラでパシャリと撮影して簡単にお家ココ台帳を始めましょう。
+                </p>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- モーダル1：手動登録ダイアログ -->
+    <div id="formModal" class="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden border border-stone-200 animate-in fade-in zoom-in duration-200">
+            <div class="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
+                <h3 class="font-semibold text-stone-800 text-sm flex items-center space-x-2">
+                    <i data-lucide="file-plus" class="w-4 h-4 text-stone-600"></i>
+                    <span>持ち物を手動で台帳に収める</span>
+                </h3>
+                <button onclick="toggleFormModal(false)" class="p-1 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-600 transition-all-300">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <form id="itemForm" onsubmit="saveItem(event)" class="p-5 space-y-4 text-sm">
+                <input type="hidden" id="editId">
+                <input type="hidden" id="itemPhotoBase64">
+
+                <div>
+                    <label class="block text-xs font-medium text-stone-500 mb-1">モノの名前 <span class="text-red-500">*</span></label>
+                    <input type="text" id="itemName" required class="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-stone-400 transition-all-300" placeholder="例：予備の単三電池">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-stone-500 mb-1">保管する部屋・場所 <span class="text-red-500">*</span></label>
+                        <select id="itemRoom" required class="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-stone-400 transition-all-300">
+                            <option value="リビング">リビング</option>
+                            <option value="キッチン">キッチン</option>
+                            <option value="クローゼット">クローゼット</option>
+                            <option value="寝室">寝室</option>
+                            <option value="玄関">玄関</option>
+                            <option value="洗面所">洗面所・お風呂</option>
+                            <option value="書斎">書斎</option>
+                            <option value="その他">その他</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-stone-500 mb-1">詳細な位置</label>
+                        <input type="text" id="itemDetailLocation" class="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-stone-400 transition-all-300" placeholder="例：テレビ台の右引き出し">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-stone-500 mb-1">カテゴリー</label>
+                        <select id="itemCategory" class="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-stone-400 transition-all-300">
+                            <option value="ガジェット・日用品">ガジェット・日用品</option>
+                            <option value="医薬品・コスメ">医薬品・コスメ</option>
+                            <option value="防災・非常食">防災・非常食</option>
+                            <option value="書類・手続き関係">書類・手続き関係</option>
+                            <option value="衣類・季節モノ">衣類・季節モノ</option>
+                            <option value="その他">その他</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-stone-500 mb-1">アイコン（絵文字）</label>
+                        <input type="text" id="itemEmoji" class="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-stone-400 transition-all-300 text-center" placeholder="🔋" value="📦">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-stone-500 mb-1">個数 / 数量</label>
+                        <input type="number" id="itemCountVal" class="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-stone-400 transition-all-300" value="1" min="1">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-stone-500 mb-1">有効・点検期限</label>
+                        <input type="date" id="itemExpiryDate" class="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-stone-400 transition-all-300">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-stone-500 mb-1">メモ・お片付けコメント</label>
+                    <textarea id="itemNotes" rows="2" class="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-stone-400 transition-all-300 font-light" placeholder="例：予備、奥の方に保管"></textarea>
+                </div>
+
+                <div class="pt-2 flex justify-end space-x-2 border-t border-stone-100">
+                    <button type="button" onclick="toggleFormModal(false)" class="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-lg font-medium transition-all-300 text-xs">
+                        キャンセル
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-stone-800 hover:bg-stone-900 text-white rounded-lg font-medium transition-all-300 text-xs shadow-sm">
+                        台帳に記録する
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- モーダル2：APIキー＆設定管理 -->
+    <div id="settingsModal" class="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden border border-stone-200 animate-in fade-in zoom-in duration-200">
+            <div class="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
+                <h3 class="font-semibold text-stone-800 text-sm flex items-center space-x-2">
+                    <i data-lucide="sliders" class="w-4 h-4 text-stone-600"></i>
+                    <span>ウチのココ - システム設定</span>
+                </h3>
+                <button onclick="toggleSettingsModal(false)" class="p-1 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-600 transition-all-300">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <div class="p-5 space-y-4 text-sm">
+                <div>
+                    <label class="block text-xs font-medium text-stone-500 mb-1">Google Gemini API キー</label>
+                    <input type="password" id="apiKeyInput" class="w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-stone-400 transition-all-300" placeholder="AI判定を使用する場合はキーを入れてください">
+                    <p class="text-[10px] text-stone-400 mt-1 leading-relaxed">
+                        ※ 入力されたキーは安全にブラウザに記憶され、外部の非公式サーバーには絶対に送信されません。Gemini 3 Flash を直接利用して画像分析します。
+                    </p>
+                </div>
+
+                <div class="pt-4 border-t border-stone-100">
+                    <p class="text-xs font-semibold text-stone-700 mb-2 flex items-center space-x-1.5">
+                        <i data-lucide="hard-drive" class="w-4 h-4 text-stone-500"></i>
+                        <span>バックアップと完全初期化</span>
+                    </p>
+                    <p class="text-[11px] text-stone-400 mb-3">
+                        このブラウザに保存されている全持ち物台帳を安全に保存・消去できます。
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="exportData()" class="bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all-300 flex items-center space-x-1">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            <span>台帳を書き出す (.json)</span>
+                        </button>
+                        <button onclick="importDataClick()" class="bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all-300 flex items-center space-x-1">
+                            <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i>
+                            <span>台帳を読み込む</span>
+                        </button>
+                        <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="importData(event)">
+                        
+                        <button onclick="clearAllData()" class="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all-300 flex items-center space-x-1">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            <span>すべてのデータを完全に消去</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-stone-100 flex justify-end space-x-2">
+                    <button onclick="saveSettings()" class="bg-stone-800 hover:bg-stone-900 text-white text-xs px-4 py-2 rounded-lg font-medium transition-all-300 shadow-sm">
+                        設定を保存する
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- シェア案内用のトースト（通知） -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 bg-stone-900 text-stone-100 text-xs py-3 px-4 rounded-xl shadow-lg border border-stone-700 flex items-center space-x-2 hidden animate-in slide-in-from-bottom duration-300">
+        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+        <span id="toastMsg">案内メッセージをコピーしました</span>
+    </div>
+
+    <!-- フッター -->
+    <footer class="bg-stone-200/50 border-t border-stone-300/40 py-6 px-4 mt-8">
+        <div class="max-w-5xl mx-auto text-center space-y-2">
+            <p class="text-xs text-stone-500 font-light">「ウチのココ」は、あなたの暮らしをシンプルにする、完全個人主導型のセキュアなお片付けアプリです。</p>
+            <p class="text-[10px] text-stone-400 font-light">&copy; 2026 ウチのココ. MIT Licensed. 著作権安全設計.</p>
+        </div>
+    </footer>
+
+    <!-- 主要スクリプト -->
+    <script>
+        // グローバル変数
+        let appItems = [];
+        let selectedCategoryFilter = "すべて";
+        let localStream = null;
+        let isSpeechListening = false;
+        let speechRecognizer = null;
+
+        // フクロウのココちゃんの優しいアドバイス集
+        const cocoTips = [
+            "よく使うものは、腰から肩の間の『ゴールデンゾーン』に収めると毎日の出し入れがスムーズですよ。",
+            "期限のある薬や非常食は、同じカゴにまとめて『期限が見えるよう』にして保管するのがおすすめです。",
+            "新しく1つ入れたら、使わなくなったものを1つ手放す。それだけで、お家はいつでも呼吸するように美しさを保ちます。",
+            "探し物で多いのは『たまにしか使わない大切な書類』。書類は立ててファイリングし、ラベルを貼っておくと迷いませんよ。",
+            "ガジェットの予備コードは、1本ずつ留め具で束ね、ジッパー付きの透明袋に入れるだけで引き出しが生まれ変わります。"
+        ];
+
+        // ページ読み込み時
+        window.onload = function() {
+            // Lucide アイコンレンダリング
+            lucide.createIcons();
+
+            // ローカルストレージからデータ・設定復元
+            loadSettingsFromLocal();
+            loadItemsFromLocal();
+
+            // ランダムアドバイスセット
+            setRandomTip();
+
+            // 音声認識の初期化
+            initSpeechRecognition();
+        };
+
+        // --- 設定関連 ---
+        function loadSettingsFromLocal() {
+            const storedKey = localStorage.getItem('uchinococo_api_key');
+            if (storedKey) {
+                document.getElementById('apiKeyInput').value = storedKey;
+                document.getElementById('apiKeyBanner').classList.add('hidden');
+            } else {
+                document.getElementById('apiKeyBanner').classList.remove('hidden');
+            }
+        }
+
+        function saveSettings() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            localStorage.setItem('uchinococo_api_key', apiKey);
+            if (apiKey) {
+                document.getElementById('apiKeyBanner').classList.add('hidden');
+            } else {
+                document.getElementById('apiKeyBanner').classList.remove('hidden');
+            }
+            toggleSettingsModal(false);
+            showToast("システム設定を保存しました");
+        }
+
+        function toggleSettingsModal(show) {
+            document.getElementById('settingsModal').style.display = show ? 'flex' : 'none';
+        }
+
+        // --- データ永続化関連 ---
+        function loadItemsFromLocal() {
+            const storedItems = localStorage.getItem('uchinococo_items');
+            if (storedItems) {
+                try {
+                    appItems = JSON.parse(storedItems);
+                } catch(e) {
+                    appItems = [];
+                }
+            } else {
+                // デフォルト初期値
+                appItems = [
+                    {
+                        id: "default-1",
+                        name: "防災用リュック (2人用)",
+                        room: "クローゼット",
+                        detailLocation: "右奥の上段棚",
+                        category: "防災・非常食",
+                        emoji: "🎒",
+                        count: 1,
+                        expiryDate: "2029-12-31",
+                        notes: "定期的な中身（保存水・乾パンなど）の点検は年に一度、秋に行うと良いですよ。",
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: "default-2",
+                        name: "常備用風邪薬",
+                        room: "リビング",
+                        detailLocation: "テレビボード下の救急箱",
+                        category: "医薬品・コスメ",
+                        emoji: "💊",
+                        count: 1,
+                        expiryDate: "2026-08-15",
+                        notes: "風邪の初期症状用の総合感冒薬。期限切れに注意してください。",
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                saveItemsToLocal();
+            }
+            renderItems();
+        }
+
+        function saveItemsToLocal() {
+            localStorage.setItem('uchinococo_items', JSON.stringify(appItems));
+        }
+
+        // --- 画面レンダリング ---
+        function renderItems() {
+            const listEl = document.getElementById('itemsList');
+            const placeholderEl = document.getElementById('noItemsPlaceholder');
+            const query = document.getElementById('searchQuery').value.toLowerCase().trim();
+            
+            // フィルタリング処理
+            let filtered = appItems.filter(item => {
+                const matchQuery = !query || 
+                                   item.name.toLowerCase().includes(query) || 
+                                   item.room.toLowerCase().includes(query) || 
+                                   (item.detailLocation && item.detailLocation.toLowerCase().includes(query)) ||
+                                   item.category.toLowerCase().includes(query) || 
+                                   (item.notes && item.notes.toLowerCase().includes(query));
+                
+                const matchCategory = selectedCategoryFilter === "すべて" || item.category === selectedCategoryFilter;
+                return matchQuery && matchCategory;
+            });
+
+            // ソート (新しい順)
+            filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            // 点数更新
+            document.getElementById('itemCount').textContent = `${appItems.length}点`;
+
+            // 有効期限の接近チェック
+            renderExpirationAlerts();
+
+            // カテゴリタグフィルターの動的描画
+            renderCategoryTags();
+
+            if (filtered.length === 0) {
+                listEl.classList.add('hidden');
+                placeholderEl.classList.remove('hidden');
+                return;
+            }
+
+            listEl.classList.remove('hidden');
+            placeholderEl.classList.add('hidden');
+
+            listEl.innerHTML = '';
+            filtered.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl border border-stone-200/60 shadow-sm hover:shadow-md transition-all-300 flex flex-col justify-between";
+                
+                // 期限が近い・切れている場合のバッジ
+                let expiryHtml = '';
+                if (item.expiryDate) {
+                    const isUrgent = isDateCloseOrExpired(item.expiryDate);
+                    expiryHtml = `
+                        <div class="mt-2.5 flex items-center space-x-1 text-xs ${isUrgent ? 'text-red-600 font-medium' : 'text-stone-400'} font-light">
+                            <i data-lucide="calendar" class="w-3.5 h-3.5 shrink-0"></i>
+                            <span>期限: ${item.expiryDate}</span>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center space-x-2.5">
+                                <span class="text-2xl" role="img" aria-label="icon">${item.emoji || '📦'}</span>
+                                <div>
+                                    <h3 class="font-medium text-stone-800 text-sm leading-tight">${item.name}</h3>
+                                    <p class="text-[10px] text-stone-400 font-light mt-0.5">${item.category}</p>
+                                </div>
+                            </div>
+                            <!-- 個数バッジ -->
+                            <span class="text-[11px] bg-stone-100 text-stone-600 px-2 py-0.5 rounded-full font-medium">数量: ${item.count}</span>
+                        </div>
+
+                        <!-- 場所表示 -->
+                        <div class="mt-3 flex items-start space-x-1.5 text-xs text-stone-600 font-light">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-stone-400 shrink-0 mt-0.5"></i>
+                            <div>
+                                <span class="font-medium text-stone-800">[${item.room}]</span>
+                                <span class="text-stone-500">${item.detailLocation ? ` - ${item.detailLocation}` : ''}</span>
+                            </div>
+                        </div>
+
+                        <!-- メモ -->
+                        ${item.notes ? `
+                            <p class="mt-2.5 text-xs text-stone-500 font-light leading-relaxed bg-stone-50 p-2 rounded-lg border border-stone-100">
+                                ${item.notes}
+                            </p>
+                        ` : ''}
+
+                        ${expiryHtml}
+                    </div>
+
+                    <!-- 操作パネル -->
+                    <div class="mt-4 pt-3 border-t border-stone-100 flex items-center justify-end space-x-1.5 text-stone-500">
+                        <!-- 家族へ場所を伝えるシェアボタン -->
+                        <button onclick="shareLocation('${item.id}')" class="p-1.5 hover:bg-stone-50 hover:text-stone-800 rounded-lg transition-all-300 flex items-center space-x-1 text-xs font-light" title="家族に場所をLINE等で共有">
+                            <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+                            <span>居場所を教える</span>
+                        </button>
+                        <span class="text-stone-300">|</span>
+                        <button onclick="openEditForm('${item.id}')" class="p-1.5 hover:bg-stone-50 hover:text-stone-800 rounded-lg transition-all-300" title="編集">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button onclick="deleteItem('${item.id}')" class="p-1.5 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all-300" title="削除">
+                            <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+
+            // アイコンのリフレッシュ
+            lucide.createIcons();
+        }
+
+        // カテゴリタグ一覧
+        function renderCategoryTags() {
+            const container = document.getElementById('categoryFilters');
+            const categories = ["すべて", "ガジェット・日用品", "医薬品・コスメ", "防災・非常食", "書類・手続き関係", "衣類・季節モノ", "その他"];
+            
+            container.innerHTML = '';
+            categories.forEach(cat => {
+                const count = cat === "すべて" ? appItems.length : appItems.filter(i => i.category === cat).length;
+                
+                const btn = document.createElement('button');
+                btn.onclick = () => {
+                    selectedCategoryFilter = cat;
+                    renderItems();
+                };
+                
+                if (selectedCategoryFilter === cat) {
+                    btn.className = "text-xs bg-stone-800 text-white px-3 py-1 rounded-full font-medium transition-all-300 shadow-sm";
+                } else {
+                    btn.className = "text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 px-3 py-1 rounded-full font-light transition-all-300";
+                }
+                
+                btn.textContent = `${cat} (${count})`;
+                container.appendChild(btn);
+            });
+        }
+
+        // 期限切迫・切れの警告チェック
+        function renderExpirationAlerts() {
+            const section = document.getElementById('expirationAlertSection');
+            const grid = document.getElementById('alertItemsGrid');
+            
+            const urgentItems = appItems.filter(item => item.expiryDate && isDateCloseOrExpired(item.expiryDate));
+            
+            if (urgentItems.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            grid.innerHTML = '';
+
+            urgentItems.forEach(item => {
+                const itemDate = new Date(item.expiryDate);
+                const today = new Date();
+                const diffTime = itemDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                let text = '';
+                if (diffDays < 0) {
+                    text = `期限が ${Math.abs(diffDays)} 日前に切れています`;
+                } else if (diffDays === 0) {
+                    text = `今日が有効・点検期限です`;
+                } else {
+                    text = `あと ${diffDays} 日で期限を迎えます`;
+                }
+
+                const alertCard = document.createElement('div');
+                alertCard.className = "bg-white p-3 rounded-xl border border-red-100 flex items-center justify-between";
+                alertCard.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xl">${item.emoji}</span>
+                        <div>
+                            <p class="text-xs font-semibold text-stone-800">${item.name}</p>
+                            <p class="text-[10px] text-red-600 font-light">${text} (${item.expiryDate})</p>
+                        </div>
+                    </div>
+                    <button onclick="openEditForm('${item.id}')" class="text-[10px] bg-stone-100 hover:bg-stone-200 text-stone-700 px-2 py-1 rounded transition-all-300 font-medium shrink-0">
+                        確認・整理
+                    </button>
+                `;
+                grid.appendChild(alertCard);
+            });
+        }
+
+        // 期限日判定
+        function isDateCloseOrExpired(dateStr) {
+            if (!dateStr) return false;
+            const expiry = new Date(dateStr);
+            const today = new Date();
+            // 期限当日以前、または15日以内に近づいている場合
+            const diffTime = expiry - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays <= 15;
+        }
+
+        // 家族への場所共有
+        function shareLocation(id) {
+            const item = appItems.find(i => i.id === id);
+            if (!item) return;
+
+            const text = `探している「${item.name}」は、[${item.room}] の [${item.detailLocation || '所定の場所'}] にありますよ。${item.notes ? `（メモ：${item.notes}）` : ''} - ウチのココより`;
+            
+            // クリップボードへコピー (iframe/ブラウザ互換性のための安全設計)
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+
+            showToast(`案内メッセージをコピーしました。LINE等にペーストして送れます。`);
+        }
+
+        // トースト通知
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 4000);
+        }
+
+        // --- 手動登録モーダル操作 ---
+        function toggleFormModal(show) {
+            const modal = document.getElementById('formModal');
+            modal.style.display = show ? 'flex' : 'none';
+            if (!show) {
+                document.getElementById('itemForm').reset();
+                document.getElementById('editId').value = '';
+                document.getElementById('itemPhotoBase64').value = '';
+            }
+        }
+
+        function openEditForm(id) {
+            const item = appItems.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('editId').value = item.id;
+            document.getElementById('itemName').value = item.name;
+            document.getElementById('itemRoom').value = item.room;
+            document.getElementById('itemDetailLocation').value = item.detailLocation || '';
+            document.getElementById('itemCategory').value = item.category;
+            document.getElementById('itemEmoji').value = item.emoji || '📦';
+            document.getElementById('itemCountVal').value = item.count || 1;
+            document.getElementById('itemExpiryDate').value = item.expiryDate || '';
+            document.getElementById('itemNotes').value = item.notes || '';
+            document.getElementById('itemPhotoBase64').value = item.photoBase64 || '';
+
+            toggleFormModal(true);
+        }
+
+        function saveItem(e) {
+            e.preventDefault();
+            
+            const editId = document.getElementById('editId').value;
+            const item = {
+                id: editId || 'item-' + Date.now(),
+                name: document.getElementById('itemName').value.trim(),
+                room: document.getElementById('itemRoom').value,
+                detailLocation: document.getElementById('itemDetailLocation').value.trim(),
+                category: document.getElementById('itemCategory').value,
+                emoji: document.getElementById('itemEmoji').value.trim() || '📦',
+                count: parseInt(document.getElementById('itemCountVal').value) || 1,
+                expiryDate: document.getElementById('itemExpiryDate').value,
+                notes: document.getElementById('itemNotes').value.trim(),
+                photoBase64: document.getElementById('itemPhotoBase64').value,
+                createdAt: editId ? (appItems.find(i => i.id === editId)?.createdAt || new Date().toISOString()) : new Date().toISOString()
+            };
+
+            if (editId) {
+                // 更新
+                const idx = appItems.findIndex(i => i.id === editId);
+                if (idx !== -1) appItems[idx] = item;
+            } else {
+                // 新規
+                appItems.push(item);
+            }
+
+            saveItemsToLocal();
+            renderItems();
+            toggleFormModal(false);
+            showToast(editId ? "持ち物情報を変更しました" : "台帳に新しく保存しました");
+        }
+
+        function deleteItem(id) {
+            if (confirm("このアイテムを台帳から削除してもよろしいですか？")) {
+                appItems = appItems.filter(i => i.id !== id);
+                saveItemsToLocal();
+                renderItems();
+                showToast("削除しました");
+            }
+        }
+
+        // --- カメラ機能 ---
+        function toggleCamera() {
+            const video = document.getElementById('video');
+            const placeholder = document.getElementById('camPlaceholder');
+            const snapBtn = document.getElementById('snapBtn');
+            const camText = document.getElementById('camText');
+            const camIcon = document.getElementById('camIcon');
+
+            if (localStream) {
+                // カメラ停止
+                stopCamera();
+                camText.textContent = "カメラを起動";
+                camIcon.setAttribute('data-lucide', 'camera');
+            } else {
+                // カメラ開始 (高解像背面カメラ優先)
+                navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" }, 
+                    audio: false 
+                })
+                .then(stream => {
+                    localStream = stream;
+                    video.srcObject = stream;
+                    video.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    document.getElementById('photoPreview').classList.add('hidden');
+                    snapBtn.classList.remove('hidden');
+                    snapBtn.classList.add('flex');
+                    camText.textContent = "カメラをオフ";
+                    camIcon.setAttribute('data-lucide', 'camera-off');
+                    lucide.createIcons();
+                })
+                .catch(err => {
+                    alert("カメラの起動に失敗しました。ファイル選択アップロードをご利用ください。");
+                    console.error("Camera error:", err);
+                });
+            }
+        }
+
+        function stopCamera() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            const video = document.getElementById('video');
+            video.classList.add('hidden');
+            video.srcObject = null;
+            document.getElementById('snapBtn').classList.add('hidden');
+            document.getElementById('snapBtn').classList.remove('flex');
+            document.getElementById('camPlaceholder').classList.remove('hidden');
+        }
+
+        // 撮影
+        function takeSnapshot() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const preview = document.getElementById('photoPreview');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // 軽量化圧縮 (JPEG圧縮品質を下げて容量セーブ)
+            const base64 = canvas.toDataURL('image/jpeg', 0.6);
+            preview.src = base64;
+            preview.classList.remove('hidden');
+            video.classList.add('hidden');
+
+            stopCamera();
+            
+            // Gemini AI 判定処理
+            analyzePhotoWithAI(base64);
+        }
+
+        // ファイルアップロード選択時
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64 = e.target.result;
+                const preview = document.getElementById('photoPreview');
+                preview.src = base64;
+                preview.classList.remove('hidden');
+                document.getElementById('camPlaceholder').classList.add('hidden');
+                if (localStream) stopCamera();
+
+                // Gemini AI 判定処理
+                analyzePhotoWithAI(base64);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- 本物のGemini AI判定システム ---
+        async function analyzePhotoWithAI(base64Image) {
+            const apiKey = localStorage.getItem('uchinococo_api_key');
+            if (!apiKey) {
+                alert("AI判定を利用するには、右上の設定ボタンからGemini APIキーを登録してください。");
+                return;
+            }
+
+            const loading = document.getElementById('aiLoading');
+            loading.classList.remove('hidden');
+            loading.classList.add('flex');
+
+            // base64のヘッダー部分を除去
+            const rawBase64 = base64Image.split(',')[1];
+
+            const prompt = `
+            あなたは優しく落ち着いた雰囲気の、お家を見守るお片付けフクロウの「ココ」です。
+            送られた写真に写っている主要な「アイテム」を1つだけ選定・分析し、お家の整理台帳に格納するための情報を以下のJSONフォーマットのみで正確に返してください。
+            挨拶や前置きなどの余計なテキストは一切不要です。純粋なJSONだけを返してください。
+
+            【JSON出力形式】
+            {
+                "name": "アイテムの一般的な日本語の分かりやすい名称",
+                "category": "ガジェット・日用品" / "医薬品・コスメ" / "防災・非常食" / "書類・手続き関係" / "衣類・季節モノ" / "その他" の中から最も適切なものを1つだけ選択,
+                "room": "リビング" / "キッチン" / "クローゼット" / "寝室" / "玄関" / "洗面所" / "書斎" / "その他" から最も自然な保管エリアを1つだけ選択,
+                "detailLocation": "例: 本棚の2段目、引き出しの中など具体的なお勧めのしまい場所",
+                "emoji": "このアイテムを表現するぴったりの絵文字を1文字だけ",
+                "notes": "このアイテムのお片付けや整理整頓に関する、ココからの温かく、美しい日本語による一言プロのアドバイス"
+            }
+            `;
+
+            // リトライ付きAPIリクエスト (指数バックオフ)
+            let success = false;
+            let resultText = "";
+            let delay = 1000;
+
+            for (let attempt = 0; attempt < 5; attempt++) {
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [
+                                    { text: prompt },
+                                    { inlineData: { mimeType: "image/jpeg", data: rawBase64 } }
+                                ]
+                            }],
+                            generationConfig: {
+                                responseMimeType: "application/json"
+                            }
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        success = true;
+                        break;
+                    }
+                } catch (err) {
+                    console.error(`Attempt ${attempt + 1} failed:`, err);
+                }
+                
+                // 指数バックオフ待ち
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+            }
+
+            loading.classList.add('hidden');
+            loading.classList.remove('flex');
+
+            if (!success) {
+                alert("Gemini AIとの接続、または画像の解析に失敗しました。キーが正しいか確認するか、時間を置いてお試しください。");
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(resultText);
+                
+                // 手動フォームにデータをセットして開く
+                document.getElementById('editId').value = '';
+                document.getElementById('itemName').value = parsed.name || '';
+                document.getElementById('itemRoom').value = parsed.room || 'リビング';
+                document.getElementById('itemDetailLocation').value = parsed.detailLocation || '';
+                document.getElementById('itemCategory').value = parsed.category || 'その他';
+                document.getElementById('itemEmoji').value = parsed.emoji || '📦';
+                document.getElementById('itemNotes').value = parsed.notes || '';
+                document.getElementById('itemPhotoBase64').value = base64Image; // 画像も保存
+
+                // ココちゃんのアドバイスを台帳の下部アドバイス欄にも反映
+                if (parsed.notes) {
+                    document.getElementById('systemTip').textContent = parsed.notes;
+                }
+
+                toggleFormModal(true);
+                showToast("AIが写真を自動解析し、フォームに入力しました");
+
+            } catch (e) {
+                console.error("JSON Parse Error:", e, resultText);
+                alert("AIの解析結果の読み込みに失敗しました。手動でご入力ください。");
+            }
+        }
+
+        // --- 自然な話し言葉によるテキスト自動登録 (API連携) ---
+        async function processTextRegister() {
+            const chatText = document.getElementById('chatInput').value.trim();
+            if (!chatText) return;
+
+            const apiKey = localStorage.getItem('uchinococo_api_key');
+            if (!apiKey) {
+                alert("AIによる言葉の解析機能を使用するには、右上の設定ボタンからGemini APIキーを登録してください。");
+                return;
+            }
+
+            const speechStatus = document.getElementById('speechStatus');
+            speechStatus.textContent = "考え中...";
+
+            const prompt = `
+            あなたは優しく落ち着いたお片付けフクロウの「ココ」です。
+            ユーザーが話した以下の日本語文から、お家の片付け・収納の意図を正確に読み取り、
+            「持ち物の名前」「収納部屋」「収納の詳細位置」「予測される適切なカテゴリ」「個数」「可愛い絵文字」「ココからの優しいアドバイス」を抽出し、以下のJSONのみで返してください。
+            挨拶や前置きなどの余計なテキストは一切不要です。
+
+            【ユーザーの発言】
+            「${chatText}」
+
+            【JSON出力形式】
+            {
+                "name": "アイテムの名称",
+                "category": "ガジェット・日用品" / "医薬品・コスメ" / "防災・非常食" / "書類・手続き関係" / "衣類・季節モノ" / "その他" の中から最も適切なものを選択,
+                "room": "リビング" / "キッチン" / "クローゼット" / "寝室" / "玄関" / "洗面所" / "書斎" / "その他" から最も自然な保管エリアを選択,
+                "detailLocation": "ユーザーが指定した引き出しや棚など具体的な位置、不明な場合は空欄",
+                "count": ユーザーが数に言及している場合は数値(整数)、ない場合は1,
+                "emoji": "このアイテムを表す絵文字を1文字",
+                "notes": "このアイテムを長持ちさせる、または整頓しておくための、フクロウのココからの温かい一言アドバイス"
+            }
+            `;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    const parsed = JSON.parse(resultText);
+
+                    // 自動登録処理
+                    const newItem = {
+                        id: 'item-' + Date.now(),
+                        name: parsed.name || '新しい持ち物',
+                        room: parsed.room || 'リビング',
+                        detailLocation: parsed.detailLocation || '',
+                        category: parsed.category || 'その他',
+                        emoji: parsed.emoji || '📦',
+                        count: parsed.count || 1,
+                        expiryDate: '',
+                        notes: parsed.notes || '',
+                        photoBase64: '',
+                        createdAt: new Date().toISOString()
+                    };
+
+                    appItems.push(newItem);
+                    saveItemsToLocal();
+                    renderItems();
+                    
+                    document.getElementById('chatInput').value = '';
+                    if (parsed.notes) {
+                        document.getElementById('systemTip').textContent = parsed.notes;
+                    }
+                    showToast(`「${newItem.name}」を[${newItem.room}]に自動登録しました！`);
+                } else {
+                    alert("AI解析に失敗しました。");
+                }
+            } catch(e) {
+                console.error(e);
+                alert("通信エラーが発生しました。");
+            } finally {
+                speechStatus.textContent = "準備完了";
+            }
+        }
+
+        // --- 本物の音声認識 (Web Speech API) ---
+        function initSpeechRecognition() {
+            window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (window.SpeechRecognition) {
+                speechRecognizer = new window.SpeechRecognition();
+                speechRecognizer.lang = 'ja-JP';
+                speechRecognizer.interimResults = false;
+                speechRecognizer.maxAlternatives = 1;
+
+                speechRecognizer.onstart = function() {
+                    isSpeechListening = true;
+                    document.getElementById('micBtn').classList.add('bg-stone-800', 'text-white');
+                    document.getElementById('speechStatus').textContent = "音声聞き取り中...";
+                };
+
+                speechRecognizer.onend = function() {
+                    isSpeechListening = false;
+                    document.getElementById('micBtn').classList.remove('bg-stone-800', 'text-white');
+                    document.getElementById('speechStatus').textContent = "聞き取り完了";
+                };
+
+                speechRecognizer.onerror = function() {
+                    isSpeechListening = false;
+                    document.getElementById('micBtn').classList.remove('bg-stone-800', 'text-white');
+                    document.getElementById('speechStatus').textContent = "エラーが発生しました";
+                };
+
+                speechRecognizer.onresult = function(event) {
+                    const resultText = event.results[0][0].transcript;
+                    document.getElementById('chatInput').value = resultText;
+                    document.getElementById('speechStatus').textContent = "入力されました";
+                };
+            } else {
+                document.getElementById('micBtn').classList.add('hidden'); // 非対応ブラウザなら隠す
+            }
+        }
+
+        function toggleSpeechRecognition() {
+            if (!speechRecognizer) return;
+            if (isSpeechListening) {
+                speechRecognizer.stop();
+            } else {
+                speechRecognizer.start();
+            }
+        }
+
+        // --- データエクスポート・インポート関連 ---
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appItems, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `ウチのココ_持ち物台帳_バックアップ.json`);
+            dlAnchorElem.click();
+        }
+
+        function importDataClick() {
+            document.getElementById('importFileInput').click();
+        }
+
+        function importData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const imported = JSON.parse(event.target.result);
+                    if (Array.isArray(imported)) {
+                        appItems = imported;
+                        saveItemsToLocal();
+                        renderItems();
+                        showToast("バックアップから台帳データを正常に復元しました");
+                        toggleSettingsModal(false);
+                    } else {
+                        alert("不正なファイルフォーマットです。");
+                    }
+                } catch(err) {
+                    alert("ファイルの読み込み中にエラーが発生しました。");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearAllData() {
+            if (confirm("本当に台帳のすべてのデータを消去してもよろしいですか？この操作は取り消せません。")) {
+                localStorage.removeItem('uchinococo_items');
+                localStorage.removeItem('uchinococo_api_key');
+                appItems = [];
+                renderItems();
+                document.getElementById('apiKeyInput').value = '';
+                document.getElementById('apiKeyBanner').classList.remove('hidden');
+                toggleSettingsModal(false);
+                showToast("すべてのデータを削除しました");
+            }
+        }
+
+        function setRandomTip() {
+            const idx = Math.floor(Math.random() * cocoTips.length);
+            document.getElementById('systemTip').textContent = cocoTips[idx];
+        }
+    </script>
+</body>
+</html>
